@@ -1,0 +1,2 @@
+#!/bin/bash
+g++ hamilton.cpp -o hamilton -std=c++0x -Wall
