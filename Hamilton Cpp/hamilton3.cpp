@@ -85,12 +85,12 @@ void getMoveString(uint16_t move, string &str){
 
   string moveStr;
   getColFromIndex(index, moveStr);
-  moveStr += (char)(index / 8) + 49;
+  moveStr += (char)(index / 8) + 49; // get char from number
   index = move & bmask;
   string tmp;
   getColFromIndex(index, tmp);
   moveStr += tmp;
-  moveStr += (char)(index / 8) + 49;
+  moveStr += (char)(index / 8) + 49; // get char from number
   str = moveStr;
 }
 // gets move string from move [index](8 bits)[index](8 bits) for other player to enter
@@ -101,12 +101,12 @@ void getReverseMoveString(uint16_t move, string &str){
 
   string moveStr;
   getColFromIndex(index, moveStr);
-  moveStr += to_string((long long)abs(6-(index / 8)));
+  moveStr += to_string((long long)abs(6-(index / 8))); // get opposite of row #
   index = move & bmask;
   string tmp;
   getColFromIndex(index, tmp);
   moveStr += tmp;
-  moveStr += to_string((long long)abs(6-(index / 8)));
+  moveStr += to_string((long long)abs(6-(index / 8))); // get opposite of row #
   str = moveStr;
 }
 // gets indices from a move
@@ -255,6 +255,7 @@ int generateHorseMoves(uint64_t board[], uint16_t hmoves[], bool comp, int activ
             // computer or human is senior piece
             else{
               open = false;
+			  // if turn is computer's
               if(comp && j < 4){
                 // check all boards
                 // space is occupied, cannot move, test for capture
@@ -263,6 +264,7 @@ int generateHorseMoves(uint64_t board[], uint16_t hmoves[], bool comp, int activ
                     capturing = true;
                 }
               }
+			  // if turn is human's
               else if(!comp && j > 3){
                 if(allpieces & moveMask && i > 23){
                   if(cpieces & moveMask)
@@ -642,6 +644,7 @@ int generateMoves(uint64_t board[], uint16_t moves[], bool comp, short pActive[]
   if(!comp){
     activeIndex = 4;
   }
+  // get size of # of moves
   hlen = generateHorseMoves(board, hmoves, comp, pActive[activeIndex]);
   klen = generateKingMoves(board, kmoves, comp, pActive[activeIndex+1]);
   blen = generateBishopMoves(board, bmoves, comp, pActive[activeIndex+2]);
@@ -678,11 +681,13 @@ int generateMoves(uint64_t board[], uint16_t moves[], bool comp, short pActive[]
       }
   }
 
+  // returns total number of moves
   return (hlen + klen + blen + plen);
 }
 
 bool hasMoves(uint64_t board[], bool comp, short pActive[]){
   uint16_t moves[56];
+  // get number of available moves
   short len = generateMoves(board, moves, comp, pActive);
   if(len > 0)
     return true;
@@ -812,6 +817,7 @@ short makeMove(uint64_t board[], uint16_t move, bool comp, short pActive[]){
   short myIndex = 0;
   short myIndexEnd = 4;
   short enemyAll = 9;
+  // if human is going, swap indices
   if(!comp){
     enemyIndex = 0;
     enemyIndexEnd = 4;
@@ -992,24 +998,31 @@ void merge(uint64_t board[], short pActive[], uint16_t moves[][56], short begin,
   short sindex = 0;
   short aindex = 0;
   short bindex = len/2;
+  // iterate over all elements in both peieces
   while(aindex < len/2 && bindex < len){
+	// if element in a is capture, it has priority
     if(isCapture(board, moves[depth][aindex]) && !isCapture(board, moves[depth][bindex]))
       sorted[sindex++] = moves[depth][aindex++];
+	// if element in b is capture, it has priority
     else if(!isCapture(board, moves[depth][aindex]) && isCapture(board, moves[depth][bindex]))
       sorted[sindex++] = moves[depth][bindex++];
+	// neither elements have priority so just add them
     else{
       sorted[sindex++] = moves[depth][aindex++];
       sorted[sindex++] = moves[depth][bindex++];
     }
   }
 
+  // add the rest of a if elements remain
   while(aindex < len/2){
     sorted[sindex++] = moves[depth][aindex++];
   }
+  // add the rest of b if elements remain
   while(bindex < len){
     sorted[sindex++] = moves[depth][bindex++];
   }
 
+  // copy back to original array
   for(int i = begin; i < len; i++){
     moves[depth][i] = sorted[i];
   }
@@ -1018,27 +1031,32 @@ void merge(uint64_t board[], short pActive[], uint16_t moves[][56], short begin,
 void mergesort(uint64_t board[], short pActive[], uint16_t moves[][56], short begin, short len, short depth){
   if(len <= 1) return;
 
-  // mergesort
+  // mergesort on first 1/2
   mergesort(board, pActive, moves, begin, len/2 , depth);
+  // mergesort on second 1/2
   mergesort(board, pActive, moves, len/2, len-len/2, depth);
 
+  // merge the two halves
   merge(board, pActive, moves, begin, len, depth);
 }
 bool mostValuableCapture(uint16_t a, uint16_t b){
 	uint64_t masksA[2];
 	uint64_t masksB[2];
+	// get to and from locations for both moves
 	getLocFromMove(masksA, a);
 	getLocFromMove(masksB, b);
 	short boardA = -1;
 	short boardB = -1;
 	short valueA;
 	short valueB;
+	// find piece being captured in both moves
 	for(int i = 0; i < 8; i++){
 		if(masksA[1] & board[i] && boardA !=-1)
 			boardA = i;
 		if(masksB[1] & board[i] && boardB !=-1)
 			boardB = i;
 	}
+	// get value of piece being captured for a
 	switch(boardA){
 		case 0: valueA = 3; break;
 		case 4: valueA = 3; break;
@@ -1049,6 +1067,7 @@ bool mostValuableCapture(uint16_t a, uint16_t b){
 		case 3: valueA = 1; break;
 		case 7: valueA = 1; break;
 	}
+	// get value of piece being captured for b
 	switch(boardB){
 		case 0: valueB = 3; break;
 		case 4: valueB = 3; break;
@@ -1059,12 +1078,16 @@ bool mostValuableCapture(uint16_t a, uint16_t b){
 		case 3: valueB = 1; break;
 		case 7: valueB = 1; break;
 	}
+	// return which move provides a better capture
 	return boardA > valueB;
 }
+
 bool historyCheck(uint16_t a, uint16_t b){
+  // return which move has a better cutoff
   return hisT[getHashFromMove(a)] > hisT[getHashFromMove(b)];
 }
 bool captureCheck(uint16_t a, uint16_t b){
+  // return which move is a capture
   return (isCapture(board, a) && !isCapture(board, b));
 }
 short orderMoves(uint64_t board[], short pActive[], uint16_t moves[][56], short len, short depth, bool comp){
@@ -1075,8 +1098,10 @@ short orderMoves(uint64_t board[], short pActive[], uint16_t moves[][56], short 
 	  if(!isCapture(board, moves[depth][captureIndex++]))
 		  break;
   }
+  // sort moves based on valuable captures
   std::sort(moves[depth], moves[depth] + captureIndex, mostValuableCapture);
   
+  // sort non capture moves based on history heuristic
   if(depth < 8)
     std::sort(moves[depth]+captureIndex, moves[depth] + len, historyCheck);
 
@@ -1098,10 +1123,11 @@ bool gameOver(uint64_t board[], short pActive[], int *hmoves, int *cmoves, bool 
   *hmoves = generateMoves(board, moves, false, pActive);
   *cmoves = generateMoves(board, moves, true, pActive);
 
-  
+	// if number of computer moves is 0 and it is its turn
 	if(*cmoves == 0 && comp){
 	  return true;
 	}
+	// if number of human moves is 0 and it is its turn
 	else if(*hmoves == 0 && !comp){
 	  return true;
 	}
@@ -1111,6 +1137,9 @@ bool gameOver(uint64_t board[], short pActive[], int *hmoves, int *cmoves, bool 
 /*********************
      PLAYER TURNS
 **********************/
+
+/////////////////////
+// declarations
 uint16_t minimax(uint64_t board[], short pActive[], std::chrono::high_resolution_clock::time_point t1, bool comp);
 int min(uint64_t board[], uint16_t allmoves[][56], short pActive[], short maxdepth, short depth, unsigned int *leafnodes, unsigned int *nonroot, std::chrono::high_resolution_clock::time_point t1, int alpha, int beta, bool comp); // declaration for MAX function
 
@@ -1154,14 +1183,18 @@ void userTurn(uint64_t board[], short pActive[], uint16_t movesPlayed[], int mov
   cout << "                             User turn!\n";
   cout << "#########################################################################\n\n";
 
+  // if computer is not playing itself
   if(!COMPUTERSONLY){
     uint16_t moves[MAX_MOVES];
+	// generate available moves and print them out
     short len = generateMoves(board, moves, false, pActive);
     displayMoves(moves, len);
 
+	// promt user
     cout << "\n\nEnter move: ";
 
     uint16_t move = getUserMove(moves, len);
+	// play valid move and add to list of moves played
     makeMove(board, move, false, pActive);
     movesPlayed[moveNumber] = move;
   }
@@ -1169,6 +1202,7 @@ void userTurn(uint64_t board[], short pActive[], uint16_t movesPlayed[], int mov
     // check time
     std::chrono::high_resolution_clock::time_point t1 = chrono::high_resolution_clock::now();
 
+	// get best move to play
     uint16_t move = minimax(board, pActive, t1, false); //moves[rand() % len];
 
     /* check time */
@@ -1176,6 +1210,7 @@ void userTurn(uint64_t board[], short pActive[], uint16_t movesPlayed[], int mov
     chrono::duration<double> time_span = chrono::duration_cast<chrono::duration<double>>(t2 - t1);
     cout << "Generating moves took " << time_span.count() <<"s."<< endl;
 
+	// make move and store it in list of moves played
     makeMove(board, move, false, pActive);
     string movestring;
     string revmovestring;
@@ -1189,11 +1224,14 @@ void userTurn(uint64_t board[], short pActive[], uint16_t movesPlayed[], int mov
 
 int max(uint64_t board[], uint16_t allmoves[][56], short pActive[], short maxdepth, short depth, unsigned int *leafnodes, unsigned int *nonroot, std::chrono::high_resolution_clock::time_point t1, int alpha, int beta, bool comp)
 {
+  // create references for number of moves left to play if the eval endters the gameover section
   int cmoves, hmoves = 0;
+  // if game is over
   if(gameOver(board, pActive, &hmoves, &cmoves, comp)){
     *leafnodes+=1;
     return evalend(board, pActive, depth, t1, true, hmoves, cmoves);
   }
+  // if at max depth
   else if(maxdepth == depth) {
     *leafnodes+=1;
     return eval(board, pActive, depth, t1, true, hmoves, cmoves);
@@ -1207,6 +1245,7 @@ int max(uint64_t board[], uint16_t allmoves[][56], short pActive[], short maxdep
     *nonroot += len;
     short noncapture = orderMoves(board, pActive, allmoves, len, depth, true);
 	
+	// for all capture moves
 	for(int i = 0; i < noncapture; i++){
       // retract variables
       short captureBoard;
@@ -1217,12 +1256,15 @@ int max(uint64_t board[], uint16_t allmoves[][56], short pActive[], short maxdep
       int score = min(board, allmoves, pActive, maxdepth, depth+1, leafnodes, nonroot, t1, myalpha, mybeta, !comp);
       retractMove(board, allmoves[depth][i], comp, pActive, captureBoard);
 
+	  // if time ran out
       if( score == -65355)
         return -65355;
       else bestScore = max(bestScore, score);
 
+	  // update alpha for pruning
       myalpha = max(myalpha, bestScore);
       if(mybeta <= myalpha){
+		// if move causes cutoff, update the history heuristic and killer move
         *leafnodes += len-i;
         hisT[getHashFromMove(allmoves[depth][i])] += std::pow(2,depth);
         killerMoves[depth][1] = killerMoves[depth][0];
@@ -1231,6 +1273,7 @@ int max(uint64_t board[], uint16_t allmoves[][56], short pActive[], short maxdep
       }
     }
 	
+	// for all other moves, if the move is a killer move
     for(int i = noncapture; i < len; i++){
       if(allmoves[depth][i] == killerMoves[depth][0] || allmoves[depth][i] == killerMoves[depth][1]){
         // retract variables
@@ -1242,18 +1285,22 @@ int max(uint64_t board[], uint16_t allmoves[][56], short pActive[], short maxdep
         int score = min(board, allmoves, pActive, maxdepth, depth+1, leafnodes, nonroot, t1, myalpha, mybeta, !comp);
         retractMove(board, allmoves[depth][i], comp, pActive, captureBoard);
 
+		// if time ran out
         if( score == -65355)
           return -65355;
         else bestScore = max(bestScore, score);
 
+		// update alpha for pruning
         myalpha = max(myalpha, bestScore);
         if(mybeta <= myalpha){
+		  // already a killer move, so update the hist heuristic
 		  hisT[getHashFromMove(allmoves[depth][i])] += std::pow(2,depth);
           return bestScore;
         }
       }
     }
 
+	// for all other moves which are neither capture nor killer move
     for(int i = noncapture; i < len; i++){
       // retract variables
       short captureBoard;
@@ -1264,12 +1311,15 @@ int max(uint64_t board[], uint16_t allmoves[][56], short pActive[], short maxdep
       int score = min(board, allmoves, pActive, maxdepth, depth+1, leafnodes, nonroot, t1, myalpha, mybeta, !comp);
       retractMove(board, allmoves[depth][i], comp, pActive, captureBoard);
 
+	  // if time ran out
       if( score == -65355)
         return -65355;
       else bestScore = max(bestScore, score);
 
+	  // update alpha for pruning
       myalpha = max(myalpha, bestScore);
       if(mybeta <= myalpha){
+		// update history heuristic and killer move
         *leafnodes += len-i;
         hisT[getHashFromMove(allmoves[depth][i])] += std::pow(2,depth);
         killerMoves[depth][1] = killerMoves[depth][0];
@@ -1277,17 +1327,21 @@ int max(uint64_t board[], uint16_t allmoves[][56], short pActive[], short maxdep
         break;
       }
     }
+	// return the best evaluation for board state
   return bestScore;
   }
 }
 
 int min(uint64_t board[], uint16_t allmoves[][56], short pActive[], short maxdepth, short depth, unsigned int *leafnodes, unsigned int *nonroot, std::chrono::high_resolution_clock::time_point t1, int alpha, int beta, bool comp)
 {
+	// create reference for # of moves if eval enters game over section
   int cmoves, hmoves = 0;
+  // if game is over
   if(gameOver(board, pActive, &hmoves, &cmoves, comp)){
     *leafnodes+=1;
     return evalend(board, pActive, depth, t1, comp, hmoves, cmoves);
   }
+  // if at max depth
   else if(maxdepth == depth) {
     *leafnodes+=1;
     return eval(board, pActive, depth, t1, comp, hmoves, cmoves);
@@ -1301,6 +1355,7 @@ int min(uint64_t board[], uint16_t allmoves[][56], short pActive[], short maxdep
     *nonroot += len;
     short noncapture = orderMoves(board, pActive, allmoves,len, depth, comp);
 	
+	// for all capture moves
 	for(int i = 0; i < noncapture; i++){
       // retract variables
       short captureBoard = 0;
@@ -1311,12 +1366,15 @@ int min(uint64_t board[], uint16_t allmoves[][56], short pActive[], short maxdep
       int score = max(board, allmoves, pActive, maxdepth, depth+1, leafnodes, nonroot, t1, myalpha, mybeta, !comp);
       retractMove(board, allmoves[depth][i], comp, pActive, captureBoard);
 
+		// if time ran out
       if(score == -65355)
         return -65355;
       else bestScore = min(bestScore, score);
 
+		// update beta for pruning
       mybeta = min(mybeta, bestScore);
       if(mybeta <= myalpha){
+		  // update history heuristic and killer move
         *leafnodes += len-i;
         hisT[getHashFromMove(allmoves[depth][i])] += std::pow(2,depth);
         killerMoves[depth][1] = killerMoves[depth][0];
@@ -1325,6 +1383,7 @@ int min(uint64_t board[], uint16_t allmoves[][56], short pActive[], short maxdep
       }
     }
 	
+	// if move is not capture and is a killer move
 	for(int i = noncapture; i < len; i++){
       if(allmoves[depth][i] == killerMoves[depth][0] || allmoves[depth][i] == killerMoves[depth][1]){
         // retract variables
@@ -1336,18 +1395,22 @@ int min(uint64_t board[], uint16_t allmoves[][56], short pActive[], short maxdep
         int score = max(board, allmoves, pActive, maxdepth, depth+1, leafnodes, nonroot, t1, myalpha, mybeta, !comp);
         retractMove(board, allmoves[depth][i], comp, pActive, captureBoard);
 
+		// if time ran out
         if( score == -65355)
           return -65355;
         else bestScore = min(bestScore, score);
 
+		// update beta for pruning
         mybeta = min(mybeta, bestScore);
 		if(mybeta <= myalpha){
+			// move is already killer move, only update hist heuristic
           hisT[getHashFromMove(allmoves[depth][i])] += std::pow(2,depth);
           return bestScore;
         }
       }
     }
 	
+	// for all noncapture non-killer moves
     for(int i = noncapture; i < len; i++){
       // retract variables
       short captureBoard = 0;
@@ -1358,12 +1421,15 @@ int min(uint64_t board[], uint16_t allmoves[][56], short pActive[], short maxdep
       int score = max(board, allmoves, pActive, maxdepth, depth+1, leafnodes, nonroot, t1, myalpha, mybeta, !comp);
       retractMove(board, allmoves[depth][i], comp, pActive, captureBoard);
 
+		// if time ran out
       if(score == -65355)
         return -65355;
       else bestScore = min(bestScore, score);
 
+		// update beta for pruning
       mybeta = min(mybeta, bestScore);
       if(mybeta <= myalpha){
+		// update hist heuristic and killer move
         *leafnodes += len-i;
         hisT[getHashFromMove(allmoves[depth][i])] += std::pow(2,depth);
         killerMoves[depth][1] = killerMoves[depth][0];
@@ -1371,6 +1437,7 @@ int min(uint64_t board[], uint16_t allmoves[][56], short pActive[], short maxdep
         break;
       }
     }
+	// return best score for board state
     return bestScore;
   }
 }
@@ -1388,14 +1455,14 @@ uint16_t minimax(uint64_t board[], short pActive[], std::chrono::high_resolution
   // all possible moves that can be generated to save memory
   uint16_t allmoves[30][56];
 
-  // used for IDS
-  // bool timeout;
-
+  // get number of moves
   short len = generateMoves(board, allmoves[depth], comp, pActive);
   int score;
   orderMoves(board, pActive, allmoves, len, depth, comp);
   displayMoves(allmoves[depth], len);
   nonroot +=len;
+  
+  // for up to depth 30, search
   for(int k = 1; k < 30 ; k++){
     int alpha = -9999;
     int beta = 9999;
@@ -1412,9 +1479,11 @@ uint16_t minimax(uint64_t board[], short pActive[], std::chrono::high_resolution
       score = min(board, allmoves, pActive, k, depth+1, &leafnodes, &nonroot, t1, alpha, beta, !comp);
       retractMove(board, allmoves[depth][i], comp, pActive, captureBoard);
 
+	// if time ran out
       if(score == -65355){
         break;
       }
+	  // if score was better
       else if( score > bestScorethisdepth){
         bestScorethisdepth = score;
         alpha = score;
@@ -1424,14 +1493,17 @@ uint16_t minimax(uint64_t board[], short pActive[], std::chrono::high_resolution
     if(score == -65355)
       break;
 
+	// update best score
     bestScore = bestScorethisdepth;
     bestMoveSoFar = bestmovethisdepth;
     cout << "   Best score was " << bestScorethisdepth << endl;
+	// if predicting to win, stop searching
     if(bestScore > 4900 && !predicted){
       cout << "Predicting win in " << k << " moves." << endl;
 		predicted = true;
 		break;
 	}
+	// if predicting to lose
 	else if(bestScore < -4900){
 		cout << "Predicting loss in " << k << " moves. But I'm still checking!" << endl;
 		predicted = true;
@@ -1465,9 +1537,11 @@ void computerTurn(uint64_t board[], short pActive[], uint16_t movesPlayed[], int
   chrono::duration<double> time_span = chrono::duration_cast<chrono::duration<double>>(t2 - t1);
   cout << "Generating moves took " << time_span.count() <<"s."<< endl;
 
+  // make the best move
   makeMove(board, move, true, pActive);
   string movestring;
   string revmovestring;
+  // add the move to moves played
   movesPlayed[moveNumber] = move;
   getMoveString(move, movestring);
   getReverseMoveString(move, revmovestring);
